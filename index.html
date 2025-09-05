@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>字母乐园 · ABC Fun</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <h1>字母乐园 · ABC Fun</h1>
+      <div class="mode-switch">
+        <button class="tab-btn active" data-tab="learn">学习</button>
+        <button class="tab-btn" data-tab="quiz">闯关</button>
+        <button class="tab-btn" data-tab="match">配对</button>
+        <button class="tab-btn" data-tab="grid">字母表</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Learn Mode -->
+      <section id="tab-learn" class="tab active">
+        <div class="card">
+          <div class="big-letter" id="learn-letter">A a</div>
+          <div class="word" id="learn-word">Apple 🍎</div>
+          <div class="controls">
+            <button id="btn-prev">上一个</button>
+            <button id="btn-speak">读一读</button>
+            <button id="btn-next">下一个</button>
+            <button id="btn-random" class="secondary">随机</button>
+          </div>
+          <label class="tiny">
+            <input type="checkbox" id="slow-speech" /> 慢速朗读
+          </label>
+        </div>
+      </section>
+
+      <!-- Quiz Mode -->
+      <section id="tab-quiz" class="tab">
+        <div class="card">
+          <div class="quiz-header">
+            <div class="prompt" id="quiz-prompt">请点字母</div>
+            <button id="quiz-speak" class="secondary">再念一次</button>
+          </div>
+          <div class="choices" id="quiz-choices"></div>
+          <div class="status">
+            <span>连续正确：<strong id="streak">0</strong></span>
+            <span>最高纪录：<strong id="best">0</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Match Mode -->
+      <section id="tab-match" class="tab">
+        <div class="card">
+          <div class="match-header">
+            <div>把大写拖到小写上：<button id="match-reset" class="secondary">换一组</button></div>
+          </div>
+          <div class="match-grid">
+            <div class="col">
+              <h3>大写</h3>
+              <div id="match-uppercase" class="bucket"></div>
+            </div>
+            <div class="col">
+              <h3>小写</h3>
+              <div id="match-lowercase" class="bucket"></div>
+            </div>
+          </div>
+          <div class="status">
+            <span>已配对：<strong id="match-done">0</strong>/6</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- A–Z Grid Mode -->
+      <section id="tab-grid" class="tab">
+        <div class="card">
+          <div class="order-header">
+            <div class="prompt" id="listen-prompt">请听声音，点对应字母</div>
+            <div class="order-actions">
+              <div class="seg">
+                <button id="case-upper" class="seg-btn active">大写</button>
+                <button id="case-lower" class="seg-btn">小写</button>
+              </div>
+              <button id="listen-repeat" class="secondary">再念一次</button>
+              <button id="listen-start" class="secondary">开始</button>
+            </div>
+          </div>
+          <div class="az-grid" id="grid-letters"></div>
+          <div class="status">
+            <span>已答对：<strong id="listen-correct">0</strong></span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div id="celebrate" aria-hidden="true"></div>
+
+    <footer class="app-footer">
+      小技巧：按键盘字母也能作答（闯关模式）
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+  </html>
