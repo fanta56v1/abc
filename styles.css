@@ -34,6 +34,7 @@ body {
   cursor: pointer;
   font-weight: 600;
   color: #333; /* ensure text visible on light background */
+  touch-action: manipulation;
 }
 .tab-btn.active { border-color: var(--accent); color: #c2185b; }
 
@@ -103,8 +104,10 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   border: 2px dashed #cfd8dc;
   border-radius: 10px;
   height: 72px; font-size: 36px; user-select: none;
+  touch-action: manipulation;
 }
 .tile.dragging { opacity: .6; }
+.tile.selected { border-style: solid; border-color: var(--accent-3); background: #eef7ff; }
 .drop { border-style: solid; }
 .drop.ok { border-color: var(--accent-2); background: #f1fff4; }
 .drop.no { border-color: #ffb3b3; background: #fff1f1; }
@@ -132,6 +135,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
   border: 2px solid #dfe6ee; border-radius: 10px;
   cursor: pointer; user-select: none;
   transition: transform .06s ease, border-color .2s ease, background .2s ease;
+  touch-action: manipulation;
 }
 .tile.az:hover { transform: translateY(-1px); }
 .tile.az.done { background: #f1fff4; border-color: var(--accent-2); opacity: .9; }
@@ -145,3 +149,6 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .seg { display: inline-flex; background: #f0f3f6; padding: 4px; border-radius: 999px; }
 .seg-btn { background: transparent; color: #333; padding: 6px 10px; border-radius: 999px; border: none; cursor: pointer; font-weight: 600; }
 .seg-btn.active { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* touch feedback */
+.pressing { transform: scale(0.98); }

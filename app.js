@@ -1,6 +1,20 @@
 // ABC Fun — simple letter learning mini‑game
 
 const LETTERS = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+// For iPad/Safari where TTS sometimes says "capital A" for single letters,
+// we can speak the letter names instead (ay, bee, see...).
+const LETTER_NAMES_US = {
+  A: 'ay', B: 'bee', C: 'see', D: 'dee', E: 'ee', F: 'ef', G: 'gee',
+  H: 'aitch', I: 'eye', J: 'jay', K: 'kay', L: 'el', M: 'em', N: 'en',
+  O: 'oh', P: 'pee', Q: 'cue', R: 'ar', S: 'ess', T: 'tee', U: 'you',
+  V: 'vee', W: 'double you', X: 'ex', Y: 'why', Z: 'zee'
+};
+const isiOSLike = (() => {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS13Up = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return iOS || iPadOS13Up;
+})();
 const DATA = {
   A: { word: "Apple 🍎" },
   B: { word: "Ball 🏀" },
@@ -85,6 +99,7 @@ function speak(text, { rate = 1, pitch = 1 } = {}) {
     const voices = window.speechSynthesis.getVoices();
     const en = voices.find(v => /en/i.test(v.lang)) || voices[0];
     if (en) u.voice = en;
+    u.lang = (en && en.lang) || 'en-US';
     u.rate = rate; u.pitch = pitch;
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
@@ -97,11 +112,18 @@ async function sayLetter(L, { rate = 1, pitch = 1 } = {}) {
   try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
   AudioBank.stop();
   const ok = await AudioBank.play(L);
-  if (!ok) speak(L, { rate, pitch });
+  if (!ok) {
+    const text = isiOSLike ? LETTER_NAMES_US[L] : L;
+    speak(text, { rate, pitch });
+  }
 }
 
+let _lastBeep = 0;
 function beep(type = 'ok') {
   try {
+    const now = Date.now();
+    if (now - _lastBeep < 90) return; // throttle rapid taps
+    _lastBeep = now;
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const o = ctx.createOscillator();
     const g = ctx.createGain();
@@ -267,12 +289,15 @@ function makeDraggable(L) {
   el.className = 'tile'; el.textContent = L; el.draggable = true;
   el.addEventListener('dragstart', (e) => { el.classList.add('dragging'); e.dataTransfer.setData('text/plain', L); });
   el.addEventListener('dragend', () => el.classList.remove('dragging'));
+  // Tap-to-select (upper first or lower first both supported)
+  el.addEventListener('click', () => onUpperTap(L, el));
   return el;
 }
 
 function makeDrop(L) {
   const el = document.createElement('div');
   el.className = 'tile drop'; el.textContent = L.toLowerCase();
+  el.dataset.letter = L;
   el.addEventListener('dragover', (e) => { e.preventDefault(); });
   el.addEventListener('dragenter', (e) => {
     e.preventDefault();
@@ -298,7 +323,57 @@ function makeDrop(L) {
       beep('no');
     }
   });
+  // Tap-to-select
+  el.addEventListener('click', () => onLowerTap(L, el));
   return el;
+}
+
+// ---- Tap-to-pair helper state ----
+let selUpperEl = null; // HTMLElement for selected uppercase
+let selLowerEl = null; // HTMLElement for selected lowercase
+
+function clearSelections() {
+  selUpperEl?.classList.remove('selected');
+  selLowerEl?.classList.remove('selected');
+  selUpperEl = null; selLowerEl = null;
+}
+
+function onUpperTap(L, el) {
+  if (el.classList.contains('done')) return;
+  if (selUpperEl === el) { clearSelections(); return; }
+  selUpperEl?.classList.remove('selected');
+  selUpperEl = el; el.classList.add('selected');
+  if (selLowerEl) tryPair();
+}
+
+function onLowerTap(L, el) {
+  if (el.classList.contains('done')) return;
+  if (selLowerEl === el) { clearSelections(); return; }
+  selLowerEl?.classList.remove('selected');
+  selLowerEl = el; el.classList.add('selected');
+  if (selUpperEl) tryPair();
+}
+
+function tryPair() {
+  const upL = selUpperEl?.textContent || '';
+  const lowL = selLowerEl?.dataset.letter || '';
+  if (!upL || !lowL) return;
+  if (upL === lowL) {
+    selUpperEl.classList.add('done');
+    selLowerEl.classList.add('done');
+    selLowerEl.textContent = `${lowL} = ${lowL.toLowerCase()}`;
+    selLowerEl.style.pointerEvents = 'none';
+    pairsDone += 1; $('#match-done').textContent = String(pairsDone);
+    beep('ok');
+    if (pairsDone === 6) confetti(24);
+    clearSelections();
+  } else {
+    selUpperEl.classList.add('wrong');
+    selLowerEl.classList.add('wrong');
+    beep('no');
+    setTimeout(() => { selUpperEl.classList.remove('wrong'); selLowerEl.classList.remove('wrong'); }, 250);
+    clearSelections();
+  }
 }
 
 // ---------- Init ----------
@@ -311,7 +386,59 @@ window.addEventListener('load', () => {
   setupQuiz();
   setupMatch();
   setupListenGrid();
+  setupTapFeedback();
+  setupWakeLock();
 });
+
+// ---------- Touch feedback (press scale) ----------
+function setupTapFeedback() {
+  const pressSelector = 'button, .tile, .choice, .tab-btn';
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target.closest(pressSelector);
+    if (t) t.classList.add('pressing');
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => {
+    document.addEventListener(ev, (e) => {
+      const t = e.target.closest(pressSelector);
+      if (t) t.classList.remove('pressing');
+    });
+  });
+}
+
+// ---------- Wake Lock (screen always on) ----------
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    // Some iPadOS/Safari versions support this now
+    wakeLock = await navigator.wakeLock?.request('screen');
+    wakeLock?.addEventListener?.('release', () => updateWakeUI());
+    updateWakeUI();
+  } catch (e) {
+    // Fallback: not available -> we simply update UI; user can keep tapping to keep screen alive
+    wakeLock = null; updateWakeUI();
+  }
+}
+function releaseWakeLock() {
+  try { wakeLock?.release?.(); } catch(e) {}
+  wakeLock = null; updateWakeUI();
+}
+function updateWakeUI() {
+  const on = !!(wakeLock && !wakeLock.released);
+  const btn = document.getElementById('wake-toggle');
+  if (btn) btn.textContent = on ? '常亮 开' : '常亮 关';
+}
+function setupWakeLock() {
+  const btn = document.getElementById('wake-toggle');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const on = !!(wakeLock && !wakeLock.released);
+    if (on) releaseWakeLock(); else requestWakeLock();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && wakeLock) requestWakeLock();
+  });
+  updateWakeUI();
+}
 
 // ---------- Listen and Click Grid Game ----------
 let listenCase = 'upper'; // 'upper' | 'lower'

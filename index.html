@@ -3,7 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>字母乐园 · ABC Fun</title>
+    <link rel="manifest" href="manifest.webmanifest" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -14,6 +18,7 @@
         <button class="tab-btn" data-tab="quiz">闯关</button>
         <button class="tab-btn" data-tab="match">配对</button>
         <button class="tab-btn" data-tab="grid">字母表</button>
+        <button id="wake-toggle" class="tab-btn secondary" title="保持屏幕常亮">常亮 关</button>
       </div>
     </header>
 
@@ -54,7 +59,7 @@
       <section id="tab-match" class="tab">
         <div class="card">
           <div class="match-header">
-            <div>把大写拖到小写上：<button id="match-reset" class="secondary">换一组</button></div>
+            <div>把大写拖到小写上，或点选配对：<button id="match-reset" class="secondary">换一组</button></div>
           </div>
           <div class="match-grid">
             <div class="col">

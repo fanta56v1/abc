@@ -1,0 +1,10 @@
+{
+  "name": "字母乐园 · ABC Fun",
+  "short_name": "ABC Fun",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff6ee",
+  "theme_color": "#ff7aa2",
+  "lang": "zh-CN"
+}
+
